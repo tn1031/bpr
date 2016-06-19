@@ -6,6 +6,7 @@ import numpy as np
 import scipy.sparse as sp
 
 from recommender import Recommender
+import fastupd
 
 class MFbpr(Recommender):
     def __init__(self, trainMatrix, testRatings, topK=100, 
@@ -99,14 +100,8 @@ class MFbpr(Recommender):
         y_pos = self.predict(u, i)  # target value of positive instance
         y_neg = self.predict(u, j)  # target value of negative instance
         mult = -self.partial_loss(y_pos - y_neg)
-        
-        for f in xrange(self.factors):
-            grad_u = self.V[i, f] - self.V[j, f]
-            self.U[u, f] -= self.lr * (mult * grad_u + self.reg * self.U[u, f])
-                
-            grad = self.U[u, f]
-            self.V[i, f] -= self.lr * (mult * grad + self.reg * self.V[i, f])
-            self.V[j, f] -= self.lr * (-mult * grad + self.reg * self.V[j, f])
+       
+        self.U, self.V = fastupd.c_upd(self.U, self.V, mult, self.lr, self.reg, u, i, j, self.factors) 
         
 
     # Partial of the ln sigmoid function used by BPR
